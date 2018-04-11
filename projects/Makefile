@@ -4,7 +4,7 @@ CFLAGS = -Wall -pedantic -g
 
 LD = gcc
 
-LDFLAGS = -L/Users/Iansweeney/CSC453/projects
+LDFLAGS = /Users/Iansweeney/CSC453/projects
 
 TARGET = tests
 
@@ -12,12 +12,12 @@ INPUTFILE =
 
 LIBFILES = my_malloc
 
-all: clean archive $(TARGET) 
+all: clean shared $(TARGET) 
 
 archive: $(LIBFILES).o
 	ar r $(LIBFILES).a $(LIBFILES).o
 
-shared:
+shared: $(LIBFILES).o
 	$(CC) -shared -fpic -o $(LIBFILES).so $(LIBFILES).o
 
 $(LIBFILES).o: $(LIBFILES).c
@@ -26,8 +26,10 @@ $(LIBFILES).o: $(LIBFILES).c
 
 
 $(TARGET): $(TARGET).c
-	$(CC) $(CFLAGS) -o $(TARGET) $(TARGET).c $(LDFLAGS) $(LIBFILES)
+	export LD_LIBRARY_PATH=$(LDFLAGS):$LD_LIBRARY_PATH 
+	$(CC) $(CFLAGS) -c -o $(TARGET).o $(TARGET).c
+	$(CC) -L $(LDFLAGS) -o $(TARGET) $(TARGET).o $(LIBFILES).so
 
 .PHONY: clean
 clean:
-	rm $(TARGET) *.o *~
+	$(RM) $(TARGET) *.o *~

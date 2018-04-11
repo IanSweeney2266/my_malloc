@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <errno.h>
 
 #define HEAP_INCREMENT (64*1024)
@@ -22,7 +23,9 @@ memblk *end = NULL;
 
 void *malloc(size_t size) {
 	/* Need to align*/
+	char* dbg = getenv("DEBUG_MALLOC");
 
+	memblk *cur = head;
 	/* If this is the first malloc*/
 	if (head == NULL) {
 		/* Create the linked list */
@@ -48,11 +51,11 @@ void *malloc(size_t size) {
 		end = head->next;
 		end->free = 1;
 
-		return head + HEAD_SIZE;
+		/* Pointer to where data goes */
+		cur = head + HEAD_SIZE;
 	}
 	/* Otherwise find the next available memory */
 	else {
-		memblk *cur = head;
 		while (cur->free == 0 || cur->size < size) {
 			cur = cur->next;
 		}
@@ -89,10 +92,19 @@ void *malloc(size_t size) {
 			end = cur->next;
 		}
 
-		return cur + HEAD_SIZE;
+		/* Pointer to where data goes */
+		cur = cur + HEAD_SIZE;
 	}
 
-	return NULL;
+	/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
+	char str[80] = {"\0"};
+	int msg_size = 80;
+	
+	snprintf(str, msg_size, 
+		"MALLOC: malloc(%d)	=> (ptr=%p, size=%d)\n\r", 
+		(int)size, cur, (int)size);
+	write(STDOUT_FILENO, str, msg_size);
+	return cur;
 }
 
 void *calloc(size_t nmemb, size_t size) {
@@ -105,6 +117,24 @@ void free(void *ptr) {
 
 void *realloc(void *ptr, size_t size) {
 	return NULL;
+}
+
+void print_list() {
+	memblk * view = head;
+
+	char str[80] = {"\0"};
+	int msg_size = 80;
+	
+	while (view != NULL) {
+		snprintf(str, msg_size, 
+			"(ptr=%p, size=%d, free=%d)\n", 
+			view, (int)view->size, view->free);
+		write(STDOUT_FILENO, str, msg_size);
+
+		view = view->next;
+	}
+	
+	return;
 }
 
 
