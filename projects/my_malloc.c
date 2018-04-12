@@ -43,7 +43,6 @@ memblk *head = NULL;
 /* Malloc family */
 void *malloc(size_t size) {
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = dbg?1:0;
 
 	size_t asize = align_16(size);
 	memblk *cur = head;
@@ -116,7 +115,7 @@ void *malloc(size_t size) {
 
 	}
 	
-	if (1) {
+	if (dbg) {
 		/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
 		char str[80] = {"\0"};
 		int msg_size = 80;
@@ -131,9 +130,7 @@ void *malloc(size_t size) {
 }
 
 void *calloc(size_t nmemb, size_t size) {
-
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = dbg?1:0;
 	
 	size_t asize = align_16(nmemb * size);
 	if (asize == 0) {
@@ -145,7 +142,7 @@ void *calloc(size_t nmemb, size_t size) {
 		return NULL;
 	}
 
-	if (dbg_flg) {
+	if (dbg) {
 		/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
 		char str[80] = {"\0"};
 		int msg_size = 80;
@@ -189,7 +186,7 @@ void free(void *ptr) {
 		}
 	}
 
-	if (dbg_flg) {
+	if (dbg) {
 		/* MALLOC: free(%p) */
 		char str[80] = {"\0"};
 		int msg_size = 80;
@@ -204,7 +201,6 @@ void free(void *ptr) {
 void *realloc(void *ptr, size_t size) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = dbg?1:0;
 
 	size_t asize = align_16(size);
 
@@ -245,7 +241,7 @@ void *realloc(void *ptr, size_t size) {
 	}
 
 	
-	if (dbg_flg) {
+	if (dbg) {
 		/* MALLOC: realloc(%p,%d) => (ptr=%p, size=%d) */
 		char str[80] = {"\0"};
 		int msg_size = 80;
