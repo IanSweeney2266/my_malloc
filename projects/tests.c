@@ -72,6 +72,8 @@ int t3_realloc() {
 	realloc(p1, 0);
 	print_list();
 
+	return 1;
+
 }
 
 void p_print(void *p) {

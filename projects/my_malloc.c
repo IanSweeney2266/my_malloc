@@ -47,6 +47,7 @@ void *malloc(size_t size) {
 
 	size_t asize = align_16(size);
 	memblk *cur = head;
+	uintptr_t p = (uintptr_t)head;
 
 	/* If this is the first malloc*/
 	if (head == NULL) {
@@ -59,7 +60,6 @@ void *malloc(size_t size) {
 		}
 
 		/* Align the head */
-		uintptr_t p = head;
 		head = (memblk*) align_16(p);
 
 		/* Allocate a large block of memory */

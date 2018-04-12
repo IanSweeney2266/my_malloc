@@ -18,7 +18,7 @@ archive: $(LIBFILES).o
 	ar r $(LIBFILES).a $(LIBFILES).o
 
 shared: $(LIBFILES).o
-	$(CC) -shared -fpic -o $(LIBFILES).so $(LIBFILES).o
+	$(CC) -shared -fPIC -o $(LIBFILES).so $(LIBFILES).o
 
 $(LIBFILES).o: $(LIBFILES).c
 	$(CC) $(CFLAGS) -c $(LIBFILES).c 
