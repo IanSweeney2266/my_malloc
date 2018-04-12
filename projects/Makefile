@@ -37,7 +37,7 @@ malloc64.o: my_malloc.c
 $(TARGET): $(TARGET).c
 	export LD_LIBRARY_PATH=$(LDFLAGS):$LD_LIBRARY_PATH 
 	$(CC) $(CFLAGS) -c -o $(TARGET).o $(TARGET).c
-	$(CC) -L $(LDFLAGS) -o $(TARGET) $(TARGET).o -l malloc
+	$(CC) -L $(LDFLAGS) -o $(TARGET) $(TARGET).o ./lib64/libmalloc.so
 
 
 .PHONY: clean

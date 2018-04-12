@@ -1,3 +1,11 @@
+/** @file my_malloc.c
+ *  @brief My version of the malloc(3) functions
+ *	
+ *	This contains functions for handling memory allocation
+ *
+ *	@author imsweene
+ */
+
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdint.h>
@@ -6,7 +14,7 @@
 #include <errno.h>
 
 
-#define ADDR_WIDTH 8
+#define MSG_SIZE 80
 #define HEAP_INCREMENT (64*1024)
 /* #define HEAD_SIZE (sizeof(struct memblk_s)) */
 #define HEAD_SIZE 32
@@ -33,6 +41,7 @@ void *realloc(void *ptr, size_t size);
 memblk *split_block(memblk *ptr, size_t size);
 memblk *merge_blocks(memblk *ptr, memblk *next);
 memblk *find_block(void *ptr);
+void extend_heap();
 void print_list();
 
 
@@ -41,6 +50,12 @@ memblk *head = NULL;
 
 
 /* Malloc family */
+
+/*
+* @brief Allocates memory.
+* @param size the amount of memory to allocate
+* @return a pointer to the first byte of data
+*/
 void *malloc(size_t size) {
 	char* dbg = getenv("DEBUG_MALLOC");
 
@@ -52,10 +67,10 @@ void *malloc(size_t size) {
 	if (head == NULL) {
 		
 		/* Create the linked list */
-		if ((head = sbrk(0)) == -1) {
+		if ((uintptr_t)(head = sbrk(0)) == -1) {
 			/* Err msg */
 			errno = ENOMEM;
-			return NULL;
+			exit(1);
 		}
 
 		/* Align the head */
@@ -63,13 +78,8 @@ void *malloc(size_t size) {
 		head = (memblk*) align_16(p);
 
 		/* Allocate a large block of memory */
-		while (head->data + asize > sbrk(0)) {
-			/* Extend heap */
-			if (sbrk(HEAP_INCREMENT) == -1) {
-				/* Err msg */
-				errno = ENOMEM;
-				return NULL;
-			}
+		while (head->data + asize > (char*)sbrk(0)) {
+			extend_heap();
 		}
 
 		/* Finish creating the head */
@@ -94,13 +104,10 @@ void *malloc(size_t size) {
 
 		/* Creating a new block */
 		else {
-			while (cur + cur->size + asize + 2*HEAD_SIZE > sbrk(0)) {
-				/* Extend heap */
-				if (sbrk(HEAP_INCREMENT) == -1) {
-					/* Err msg */
-					errno = ENOMEM;
-					return NULL;
-				}
+			while (cur->data + cur->size + 
+				asize + HEAD_SIZE > (char*)sbrk(0)) {
+
+				extend_heap();
 			}
 
 			/* Add a Node to the list */
@@ -117,18 +124,23 @@ void *malloc(size_t size) {
 	
 	if (dbg) {
 		/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
-		char str[80] = {"\0"};
-		int msg_size = 80;
+		char str[MSG_SIZE] = {"\0"};
 
-		snprintf(str, msg_size, 
-			"MALLOC: malloc(%d)		=> (ptr=%p, size=%d)\n\r", 
+		snprintf(str, MSG_SIZE, 
+			"MALLOC: malloc(%d)	=> (ptr=%p, size=%d)\n\r", 
 			(int)size, cur, (int)asize);
-		write(STDERR_FILENO, str, msg_size);
+		write(STDERR_FILENO, str, MSG_SIZE);
 	}
 
 	return cur->data;
 }
 
+/*
+* @brief Allocates and clears memory.
+* @param size the size of a member
+* @param nmemb the number of members
+* @return a pointer to the first byte of data
+*/
 void *calloc(size_t nmemb, size_t size) {
 	char* dbg = getenv("DEBUG_MALLOC");
 	
@@ -138,28 +150,32 @@ void *calloc(size_t nmemb, size_t size) {
 	}
 
 	memblk *cur = malloc(asize);
+	cur = (memblk*)((uintptr_t)cur - HEAD_SIZE);
 	if (cur == NULL) {
 		return NULL;
 	}
 
 	if (dbg) {
 		/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
-		char str[80] = {"\0"};
-		int msg_size = 80;
+		char str[MSG_SIZE] = {"\0"};
 
-		snprintf(str, msg_size, 
+		snprintf(str, MSG_SIZE, 
 			"MALLOC: calloc(%d,%d)	=> (ptr=%p, size=%d)\n\r", 
 			(int)nmemb, (int)size, cur, (int)asize);
-		write(STDERR_FILENO, str, msg_size);
+		write(STDERR_FILENO, str, MSG_SIZE);
 	}
 	
 	return memset(cur->data, 0, asize);
 }
 
+/*
+* @brief Frees memory.
+* @param ptr a pointer to somewhere in the block of memory
+* 	to be freed
+*/
 void free(void *ptr) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = dbg?1:0;
 	
 
 	if (ptr == NULL) {
@@ -177,7 +193,6 @@ void free(void *ptr) {
 		/* combine with prev if free */
 		if (cur->prev && cur->prev->free) {
 			cur = merge_blocks(cur->prev, cur);
-			cur = cur->next;
 		}
 
 		/* combine with next if free */
@@ -188,16 +203,21 @@ void free(void *ptr) {
 
 	if (dbg) {
 		/* MALLOC: free(%p) */
-		char str[80] = {"\0"};
-		int msg_size = 80;
+		char str[MSG_SIZE] = {"\0"};
 		
-		snprintf(str, msg_size, "MALLOC: free(%p)\n\r", cur);
-		write(STDERR_FILENO, str, msg_size);
+		snprintf(str, MSG_SIZE, "MALLOC: free(%p)\n\r", cur);
+		write(STDERR_FILENO, str, MSG_SIZE);
 	}
 
 	return;
 }
 
+/*
+* @brief Reallocates memory at ptr to a block of size size.
+* @param ptr a pointer to somewhere in the block of memory
+* @param size the amount of memory to allocate
+* @return a pointer to the first byte of data
+*/
 void *realloc(void *ptr, size_t size) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
@@ -227,6 +247,15 @@ void *realloc(void *ptr, size_t size) {
 			cur = merge_blocks(cur, cur->next);
 			cur = split_block(cur, asize);
 		}
+
+		/* Extend the last block */
+		else if (!cur->next) {
+			while (cur->data + asize > (char*)sbrk(0)) {
+				extend_heap();
+			}
+			cur->size = asize;
+
+		}
 				
 		/* Malloc and copy data */ 
 		else {
@@ -234,6 +263,7 @@ void *realloc(void *ptr, size_t size) {
 			if ((cur = malloc(asize)) == NULL) {
 				return NULL;
 			}
+			cur = (memblk*)((uintptr_t)cur - HEAD_SIZE);
 			memcpy(cur->data, temp->data, asize);
 			/* Need to not print twice */
 			free(temp);
@@ -243,25 +273,31 @@ void *realloc(void *ptr, size_t size) {
 	
 	if (dbg) {
 		/* MALLOC: realloc(%p,%d) => (ptr=%p, size=%d) */
-		char str[80] = {"\0"};
-		int msg_size = 80;
+		char str[MSG_SIZE] = {"\0"};
 		
-		snprintf(str, msg_size, 
+		snprintf(str, MSG_SIZE, 
 			"MALLOC: realloc(%p,%d)	=> (ptr=%p, size=%d)\n\r", 
 			ptr, (int)size, cur, (int)asize);
-		write(STDERR_FILENO, str, msg_size);
+		write(STDERR_FILENO, str, MSG_SIZE);
 	}
 	
-	return cur;
+	return cur->data;
 }
 
 
 /* Helper functions */
+
+/*
+* @brief Splits a block of memory at size.
+* @param ptr a pointer to the start of the block
+* @param size the amount of memory to allocate
+* @return a pointer to the first byte of the header
+*/
 memblk *split_block(memblk *ptr, size_t size) {
 	if (ptr->size - size > HEAD_SIZE + 1) {
 		/* make more free space */
 		memblk *temp = ptr->next;
-		ptr->next = ptr->data + size;
+		ptr->next = (memblk*) (ptr->data + size);
 		ptr->next->size = ptr->size - size - HEAD_SIZE;
 		ptr->next->free = 1;
 		ptr->next->next = temp;
@@ -277,6 +313,12 @@ memblk *split_block(memblk *ptr, size_t size) {
 	return ptr;
 }
 
+/*
+* @brief Merges two blocks of memory.
+* @param ptr a pointer to a header
+* @param next a pointer to the next header
+* @return a pointer to the first byte of the header
+*/
 memblk *merge_blocks(memblk *ptr, memblk *next) {
 	ptr->size += next->size + HEAD_SIZE;
 	if (next->next) {
@@ -290,30 +332,49 @@ memblk *merge_blocks(memblk *ptr, memblk *next) {
 	return ptr;
 }
 
+/*
+* @brief Finds a header given a pointer somewhere in its block.
+* @param ptr a pointer to a location in a block
+* @return a pointer to the first byte of the header
+*/
 memblk *find_block(void *ptr) {
 	if (ptr == NULL) {
 		return NULL;
 	}
 
 	memblk *cur = head;
-	while (cur && ((cur->data + cur->size) < ptr)) {
+	while (cur && ((cur->data + cur->size) < (char*)ptr)) {
 		cur = cur->next;
 	}
 
 	return cur;
 }
 
+/*
+* @brief Extends the heap by HEAP_INCREMENT
+*/
+void extend_heap() {
+	if ((uintptr_t)sbrk(HEAP_INCREMENT) == -1) {
+		/* Err msg */
+		errno = ENOMEM;
+		perror("Sbrk");
+		exit(1);
+	}
+}
+
+/*
+* @brief Prints each block in the linked list
+*/
 void print_list() {
 	memblk * view = head;
 
-	char str[80] = {"\0"};
-	int msg_size = 80;
+	char str[MSG_SIZE] = {"\0"};
 
 	while (view != NULL) {
-		snprintf(str, msg_size, 
+		snprintf(str, MSG_SIZE, 
 			"(ptr=%p, size=%d, free=%d)\n", 
 			view, (int)view->size, view->free);
-		write(STDERR_FILENO, str, msg_size);
+		write(STDERR_FILENO, str, MSG_SIZE);
 
 		view = view->next;
 	}
