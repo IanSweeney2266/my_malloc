@@ -10,7 +10,7 @@ TARGET = tests
 
 LIBFILES = my_malloc
 
-all: clean intel-all $(TARGET) 
+all malloc: clean intel-all $(TARGET) 
 
 
 intel-all: lib/libmalloc.so lib64/libmalloc.so
@@ -33,6 +33,9 @@ malloc32.o: my_malloc.c
 malloc64.o: my_malloc.c
 	$(CC) $(CFLAGS) -m64 -c -o malloc64.o my_malloc.c
 
+
+libmalloc.a: malloc64.o
+	ar r $@ $<
 
 $(TARGET): $(TARGET).c
 	export LD_LIBRARY_PATH=$(LDFLAGS):$LD_LIBRARY_PATH 

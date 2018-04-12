@@ -15,7 +15,10 @@ void s_print(char *s);
 
 int main(int argc, char* argv[]) {
 
-	t4_moving_realloc();
+	// t1_general();
+	// t2_defrag();
+	// t3_realloc();
+	// t4_moving_realloc();
 	// print_list();
 	return 0;
 }

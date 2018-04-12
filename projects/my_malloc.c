@@ -17,7 +17,7 @@
 #define MSG_SIZE 80
 #define HEAP_INCREMENT (64*1024)
 /* #define HEAD_SIZE (sizeof(struct memblk_s)) */
-#define HEAD_SIZE 32
+#define HEAD_SIZE (sizeof(struct memblk_s) - sizeof(char*))
 
 #define align_16(x) (((((x)-1)>>4)<<4)+16)
 
