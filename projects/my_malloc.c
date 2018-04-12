@@ -43,11 +43,11 @@ memblk *head = NULL;
 /* Malloc family */
 void *malloc(size_t size) {
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = 0;
+	int dbg_flg = dbg?1:0;
 
 	size_t asize = align_16(size);
 	memblk *cur = head;
-	uintptr_t p = (uintptr_t)head;
+	uintptr_t p;
 
 	/* If this is the first malloc*/
 	if (head == NULL) {
@@ -60,6 +60,7 @@ void *malloc(size_t size) {
 		}
 
 		/* Align the head */
+		p = (uintptr_t)head;
 		head = (memblk*) align_16(p);
 
 		/* Allocate a large block of memory */
@@ -115,7 +116,7 @@ void *malloc(size_t size) {
 
 	}
 	
-	if (dbg_flg) {
+	if (1) {
 		/* MALLOC: malloc(%d) => (ptr=%p, size=%d) */
 		char str[80] = {"\0"};
 		int msg_size = 80;
@@ -132,7 +133,7 @@ void *malloc(size_t size) {
 void *calloc(size_t nmemb, size_t size) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = 0;
+	int dbg_flg = dbg?1:0;
 	
 	size_t asize = align_16(nmemb * size);
 	if (asize == 0) {
@@ -161,7 +162,7 @@ void *calloc(size_t nmemb, size_t size) {
 void free(void *ptr) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = 0;
+	int dbg_flg = dbg?1:0;
 	
 
 	if (ptr == NULL) {
@@ -203,7 +204,7 @@ void free(void *ptr) {
 void *realloc(void *ptr, size_t size) {
 
 	char* dbg = getenv("DEBUG_MALLOC");
-	int dbg_flg = 0;
+	int dbg_flg = dbg?1:0;
 
 	size_t asize = align_16(size);
 

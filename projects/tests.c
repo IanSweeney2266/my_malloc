@@ -17,10 +17,14 @@ int main(int argc, char* argv[]) {
 	
 
 	// t2_defrag();
-	// t3_realloc();
+	t3_realloc();
 	
 	// p_print(sbrk(0));
 
+	// print_list();
+
+	// malloc(1);
+	// printf("hello??\n");
 	// print_list();
 	return 0;
 }
